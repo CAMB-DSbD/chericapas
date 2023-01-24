@@ -22,12 +22,37 @@
 #include <sys/sysctl.h>
 #include <stdio.h>
 
+
 /*
  * Gets a capability with permissions to seal.
  */
 int get_sealing_cap(void **cap_ptr) {
   void *cap = *cap_ptr;
   size_t cap_size = sizeof(cap);
+
+  if (sysctlbyname("security.cheri.sealcap", &cap, &cap_size, NULL, 0) < 0) {
+    return -1;
+  }
+
+  *cap_ptr = cap;
+  return 0;
+}
+
+int main() {
+  void *sealing_cap = NULL;
+  if (get_sealing_cap(&sealing_cap) < 0) {
+    fprintf(stderr, "Error: failed to get sealing capability");
+    return 1;
+  }
+ 
+  int num = 13;
+  int *ptr = &num;
+
+
+  printf("Pointer value: %d\n", *ptr);
+
+  // sealed_ptr should now be inaccessible.
+  void *sealed_ptr = cheri_seal(ptr, sealing_cap);
 
   // This will cause a security exception.
 #if 0
